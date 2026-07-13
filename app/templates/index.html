@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PR Risk Agent — Know the risk before you merge</title>
+  <meta name="description" content="An AI agent that reviews a pull request diff and returns a structured pre-merge risk analysis." />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">◆</span>
+        <div>
+          <h1 class="brand-name">PR Risk Agent</h1>
+          <p class="tagline">Know the risk before you merge.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro">
+      <p>
+        PR Risk Agent reviews a pull request description and diff the way a cautious senior
+        engineer would before a merge: it flags correctness, security, performance, reliability,
+        and testing concerns, and returns a structured, actionable report.
+        <strong>This is an automated assistant &mdash; it does not replace human code review or testing.</strong>
+      </p>
+    </section>
+
+    <section class="panel" aria-labelledby="form-heading">
+      <h2 id="form-heading" class="visually-hidden">Submit a pull request for analysis</h2>
+      <form id="analyze-form" novalidate>
+        <div class="field">
+          <label for="pr_title">PR title</label>
+          <input type="text" id="pr_title" name="pr_title" maxlength="300"
+                 placeholder="e.g. Add bulk user deletion endpoint" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label for="pr_description">PR description <span class="optional">(optional)</span></label>
+          <textarea id="pr_description" name="pr_description" rows="3" maxlength="5000"
+                    placeholder="What is this PR trying to do, and why?"></textarea>
+        </div>
+
+        <div class="field">
+          <label for="diff">
+            Git diff or code change <span class="required" aria-hidden="true">*</span>
+          </label>
+          <textarea id="diff" name="diff" rows="14" maxlength="50000" required
+                    aria-required="true" aria-describedby="diff-help"
+                    placeholder="Paste a unified git diff or the relevant code snippet here..."
+                    class="code-area"></textarea>
+          <div class="field-meta">
+            <span id="diff-help" class="help-text">Required. Up to 50,000 characters.</span>
+            <span id="diff-count" class="char-count">0 / 50,000</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="context">Repository / system context <span class="optional">(optional)</span></label>
+          <textarea id="context" name="context" rows="3" maxlength="5000"
+                    placeholder="e.g. Public FastAPI service, PostgreSQL, deployed multiple times a day, no staging environment"></textarea>
+        </div>
+
+        <div id="form-error" class="form-error" role="alert" hidden></div>
+
+        <div class="actions">
+          <button type="button" id="sample-btn" class="btn btn-secondary">
+            Load sample (risky) PR
+          </button>
+          <button type="submit" id="analyze-btn" class="btn btn-primary">
+            <span class="btn-label">Analyze PR</span>
+            <span class="spinner" aria-hidden="true" hidden></span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <section id="results" class="results" hidden aria-live="polite">
+      <div class="results-header">
+        <h2>Analysis report</h2>
+        <p class="disclaimer">
+          Automated review output. Confirm findings manually before acting on them.
+        </p>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-card" id="card-risk">
+          <span class="summary-label">Overall risk</span>
+          <span id="risk-badge" class="badge badge-lg"></span>
+        </div>
+        <div class="summary-card" id="card-recommendation">
+          <span class="summary-label">Merge recommendation</span>
+          <span id="recommendation-badge" class="badge badge-lg"></span>
+        </div>
+        <div class="summary-card" id="card-confidence">
+          <span class="summary-label">Confidence</span>
+          <div class="confidence-wrap">
+            <div class="confidence-bar"><div id="confidence-fill" class="confidence-fill"></div></div>
+            <span id="confidence-value" class="confidence-value"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="report-block">
+        <h3>Summary</h3>
+        <p id="summary-text" class="body-text"></p>
+      </div>
+
+      <div class="report-block">
+        <h3>Findings</h3>
+        <div id="findings-list" class="findings-list"></div>
+        <p id="findings-empty" class="empty-state" hidden>No specific findings were raised.</p>
+      </div>
+
+      <div class="report-block">
+        <h3>Missing test cases</h3>
+        <ul id="missing-tests-list" class="simple-list"></ul>
+        <p id="missing-tests-empty" class="empty-state" hidden>No missing tests were identified.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="report-block">
+          <h3>Deployment considerations</h3>
+          <ul id="deployment-list" class="simple-list"></ul>
+          <p id="deployment-empty" class="empty-state" hidden>Nothing notable flagged.</p>
+        </div>
+        <div class="report-block">
+          <h3>Rollback plan</h3>
+          <ul id="rollback-list" class="simple-list"></ul>
+          <p id="rollback-empty" class="empty-state" hidden>Nothing notable flagged.</p>
+        </div>
+      </div>
+
+      <div class="report-block">
+        <h3>Positive observations</h3>
+        <ul id="positive-list" class="simple-list positive"></ul>
+        <p id="positive-empty" class="empty-state" hidden>No positive observations noted.</p>
+      </div>
+
+      <div class="report-block final-reasoning">
+        <h3>Final reasoning</h3>
+        <p id="final-reasoning-text" class="body-text"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>
+        PR Risk Agent produces automated, AI-generated suggestions. It does not replace human
+        code review, testing, or judgment.
+      </p>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
